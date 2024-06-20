@@ -92,8 +92,9 @@ async function callOpenAiAPI({ api_key, model, max_tokens, tools, messages }) {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: model ?? 'gpt-4',
-        max_tokens: max_tokens ?? 1024,
+        model: model ?? 'gpt-4o',
+        max_tokens: max_tokens ?? 3024,
+        temperature: 0,
         tools: tools,
         messages: messages,
       }),
@@ -204,18 +205,21 @@ function generateSchema(form) {
   };
 }
 
-// https://stackoverflow.com/questions/9476617/how-to-set-radio-button-status-with-javascript/25768402
-
 function fillForm(formFields, inputData) {
   inputData.forEach(([n, v]) => {
     try {
       const fieldDef = formFields[n];
       const fieldName = fieldDef.name;
       const fieldElement = document.querySelector(`[name="${fieldName}"]`);
-
-      if (fieldElement.type === 'radio') {
+      if (Array.isArray(v)) {
+        v.forEach((value) => {
+          const checkbox = document.querySelector(
+            `[name="${fieldName}"][value="${value}"]`
+          );
+          if (checkbox) checkbox.checked = true;
+        });
+      } else if (fieldElement.type === 'radio') {
         const radio = document.querySelector(`[name="${fieldName}"]`);
-        console.log('radio', radio);
         radio.checked = true;
       } else if (fieldElement) {
         fieldElement.value = v;
@@ -244,7 +248,7 @@ const submitForm = async (form, formId) => {
     messages: [
       {
         role: 'user',
-        content: `"fillup_form" with following data:
+        content: `call "fillup_form" with following data:
 ${_data}
           
 No additional comments. only json data`,
@@ -273,10 +277,18 @@ forms.forEach((form, i) => {
 <dialog class="fill" id="dialog_${i}">
     <article>
       <p>
-        <textarea class="fill" placeholder="Your data" name="_data" id="_data_${i}" required></textarea>
+        <textarea class="fill" placeholder="Your data" id="_data_${i}" required>Student Name: Emily Johnson
+Student ID: 12345
+Email: emily@example.com
+Birthday: 04/12/1998
+Address: 1234 Elm Street, Springfield, IL 62701
+Phone: 217 8123438
+Extra Curricular Activities: Swimming, Reading, Writing
+Skills/Talents: Acting, dancing, singing
+Sports: Tennis, Soccer, Chess</textarea>
       </p>
       <p>
-        <input type="password" placeholder="OpenAi API key" name="_api-key" id="_api-key_${i}" required />
+        <input type="password" placeholder="OpenAi API key" id="_api-key_${i}" required />
       </p>
       <p style="text-align: right">
         <button role="button" onclick="dialog_${i}.close()">
