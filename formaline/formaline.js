@@ -273,7 +273,7 @@ const forms = Array.from(document.getElementsByTagName('form'));
 forms.forEach((form, i) => {
   const _div = document.createElement('div');
   _div.innerHTML = `
-<a class="fill_btn" onclick="dialog_${i}.showModal()">Fill</a>
+<a class="fill_btn" onclick="dialog_${i}.showModal()">✨ Fill</a>
 <dialog class="fill" id="dialog_${i}">
     <article>
       <p>
@@ -284,8 +284,10 @@ Birthday: 04/12/1998
 Address: 1234 Elm Street, Springfield, IL 62701
 Phone: 217 8123438
 Extra Curricular Activities: Swimming, Reading, Writing
-Skills/Talents: Acting, dancing, singing
-Sports: Tennis, Soccer, Chess</textarea>
+Skills/Talents: acting, dancing, singing
+Sports: Tennis, Soccer, Chess
+i Have Any Scholarship
+i want to work after collage</textarea>
       </p>
       <p>
         <input type="password" placeholder="OpenAi API key" id="_api-key_${i}" required />
@@ -322,16 +324,17 @@ dialog.fill{
 }
 .fill_btn {
   cursor: pointer;
-    margin-left: .5em;
-    background: #ecad11;
-    width: 6em;
-    height: 100%;
-    display: flex;
-    align-content: center;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    text-align: center;
+  margin-left: .5em;
+  color: yellow;
+  background: black;
+  width: 6em;
+  height: 100%;
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  text-align: center;
 }
 </style>`;
   const openBtn = form.querySelector(`button[type="submit"]`);
