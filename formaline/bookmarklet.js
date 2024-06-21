@@ -14,7 +14,6 @@ javascript: (function () {
     return describeId ? document.querySelector(`#${describeId}`).innerText : '';
   };
 
-  // Schema generation functions
   const getInputSchema = (input) => {
     const { name, type, min, max, pattern, required } = input;
     if (!name) return null;
@@ -90,7 +89,6 @@ javascript: (function () {
     ];
   };
 
-  // Main schema generation function
   const generateSchema = (form) => {
     const inputSelectors = [
       'input[type="text"]',
@@ -147,7 +145,6 @@ javascript: (function () {
     };
   };
 
-  // Form filling function
   const fillForm = (formFields, inputData) => {
     inputData.forEach(([name, value]) => {
       try {
@@ -176,7 +173,6 @@ javascript: (function () {
     });
   };
 
-  // API call function
   const callOpenAiAPI = async ({
     api_key,
     model = 'gpt-4',
@@ -209,7 +205,6 @@ javascript: (function () {
     }
   };
 
-  // Utility function to group elements by name
   const groupByName = (arr) =>
     Object.entries(
       arr.reduce((result, obj) => {
@@ -224,7 +219,6 @@ javascript: (function () {
       }, {})
     );
 
-  // Form setup
   const setupForms = () => {
     const forms = Array.from(document.getElementsByTagName('form'));
 
@@ -322,7 +316,6 @@ dialog.fill{
     });
   };
 
-  // Form submission function
   const submitForm = async (submitButton, form, formId) => {
     submitButton.classList.add('spinner');
     const formSchema = generateSchema(form);
@@ -354,6 +347,5 @@ dialog.fill{
     }
   };
 
-  // Initialize the form setup
   setupForms();
 })();
