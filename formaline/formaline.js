@@ -11,40 +11,80 @@ function formatName(name) {
   return name.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 63);
 }
 
-function processInput(input) {
-  const { name, type, id, value, placeholder, required } = input;
+function getInputSchema(input) {
+  const { name, type, value, min, max, pattern, required } = input;
   // Skip input with value
   if (value) return;
   // Skip input without a name
   if (!name) return;
 
-  const schema = { type: 'string', name: name };
-  schema.description = getEleDesc(input);
+  const schema = {
+    name,
+    type: type === 'number' ? 'number' : 'string',
+    description: getEleDesc(select),
+    name: name,
+  };
+  if (min) schema.minimum = Number(min);
+  if (max) schema.maximum = Number(max);
+  if (pattern) schema.pattern = pattern;
+
   return [formatName(name), schema, required];
 }
 
-function processSelect(select) {
+function getSelectSchema(select) {
   const { name, required } = select;
   if (!name) return;
-  const schema = { type: 'string', enum: [] };
+  const schema = {
+    name,
+    type: 'string',
+    description: getEleDesc(select),
+    enum: [],
+  };
   Array.from(select.options).forEach((option) => {
     // Add the option to the schema
     schema.enum.push(option.value);
   });
-  schema.description = getEleDesc(select);
-  schema.name = name;
   return [formatName(name), schema, required];
 }
 
-function processTextArea(textArea) {
-  const { name, id, required } = textArea;
+function getTextareaSchema(textArea) {
+  const { name, required } = textArea;
   if (!name) return;
-  const schema = { type: 'string' };
-  schema.description = getEleDesc(textArea);
-  schema.name = name;
+  const schema = { name, type: 'string', description: getEleDesc(select) };
   return [formatName(name), schema, required];
 }
 
+function getCheckboxesSchema([name, values]) {
+  if (!name.endsWith('[]')) {
+    // we have solitary checkbox
+    console.log('solitary checkbox', name, values);
+  }
+  const e = document.querySelector(`[name="${name}"]`);
+  const description = getDescription(e);
+  const schema = {
+    name,
+    type: 'array',
+    description,
+    uniqueItems: true,
+    // description: values.map((v) => v.description).join(', '),
+    items: {
+      oneOf: values,
+    },
+  };
+  return [formatName(name), schema];
+}
+
+function getRadioSchema([name, values]) {
+  const e = document.querySelector(`[name="${name}"]`);
+  const description = getDescription(e);
+  const schema = {
+    name,
+    type: 'string',
+    description,
+    enum: values.map((v) => v.const),
+  };
+  return [formatName(name), schema];
+}
 function fillForm(formFields, formData) {
   formData.forEach(([n, v]) => {
     const fieldDef = formFields[n];
@@ -54,33 +94,6 @@ function fillForm(formFields, formData) {
       fieldElement.value = v;
     }
   });
-}
-
-function callAnthropicAPI({ api_key, model, max_tokens, tools, messages }) {
-  return fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': api_key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'tools-2024-04-04',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: model ?? 'claude-3-opus-20240229',
-      max_tokens: max_tokens ?? 1024,
-      tools: tools,
-      messages: messages,
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      return data;
-      // Handle the response data here
-    })
-    .catch((error) => {
-      // Handle any errors here
-      console.error('Error:', error);
-    });
 }
 
 async function callOpenAiAPI({ api_key, model, max_tokens, tools, messages }) {
@@ -125,38 +138,6 @@ function getDescription(ele) {
   }
 }
 
-function processCheckboxes([name, values]) {
-  if (!name.endsWith('[]')) {
-    // we have solitary checkbox
-    console.log('solitary checkbox', name, values);
-  }
-  const e = document.querySelector(`[name="${name}"]`);
-  const description = getDescription(e);
-  const schema = {
-    name,
-    type: 'array',
-    description,
-    uniqueItems: true,
-    // description: values.map((v) => v.description).join(', '),
-    items: {
-      oneOf: values,
-    },
-  };
-  return [formatName(name), schema];
-}
-
-function processRadios([name, values]) {
-  const e = document.querySelector(`[name="${name}"]`);
-  const description = getDescription(e);
-  const schema = {
-    name,
-    type: 'string',
-    description,
-    enum: values.map((v) => v.const),
-  };
-  return [formatName(name), schema];
-}
-
 function generateSchema(form) {
   // Select all form inputs, selects, and textareas
   const inputsEle = form.querySelectorAll(
@@ -168,20 +149,20 @@ function generateSchema(form) {
   const textAreasEle = form.getElementsByTagName('textarea');
 
   const inputs = Array.from(inputsEle)
-    .map((input) => processInput(input))
+    .map((input) => getInputSchema(input))
     .filter((e) => e);
 
   const checkBoxes = groupByName(Array.from(checkboxEle)).map(
-    processCheckboxes
+    getCheckboxesSchema
   );
-  const radios = groupByName(Array.from(radiosEle)).map(processRadios);
+  const radios = groupByName(Array.from(radiosEle)).map(getRadioSchema);
 
   const selects = Array.from(selectsEle)
-    .map((select) => processSelect(select))
+    .map((select) => getSelectSchema(select))
     .filter((e) => e);
 
   const textAreas = Array.from(textAreasEle)
-    .map((textArea) => processTextArea(textArea))
+    .map((textArea) => getTextareaSchema(textArea))
     .filter((e) => e);
   const schemaProps = [
     ...inputs,
