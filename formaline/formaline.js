@@ -1,172 +1,132 @@
-const getEleDesc = (ele) => {
-  const labelsStr = Array.from(ele.labels)
-    .map((l) => l.innerText)
+// Utility functions
+const getElementDescription = (element) => {
+  const labelsText = Array.from(element.labels)
+    .map((label) => label.innerText)
     .join(', ');
-  const placeholderStr = ele.placeholder;
-  return `${labelsStr} ${placeholderStr}`.trim();
+  return `${labelsText} ${element.placeholder || ''}`.trim();
 };
 
-function formatName(name) {
-  // Property keys should match pattern '^[a-zA-Z0-9_-]{1,64}$'
-  return name.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 63);
-}
+const formatName = (name) => name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 63);
 
-function getInputSchema(input) {
-  const { name, type, value, min, max, pattern, required } = input;
-  // Skip input with value
-  if (value) return;
-  // Skip input without a name
-  if (!name) return;
+const getDescription = (element) => {
+  const describeId = element.getAttribute('aria-describedby');
+  return describeId ? document.querySelector(`#${describeId}`).innerText : '';
+};
+
+// Schema generation functions
+const getInputSchema = (input) => {
+  const { name, type, min, max, pattern, required } = input;
+  if (!name) return null;
 
   const schema = {
     name,
     type: type === 'number' ? 'number' : 'string',
-    description: getEleDesc(input),
-    name: name,
+    description: getElementDescription(input),
   };
+
   if (min) schema.minimum = Number(min);
   if (max) schema.maximum = Number(max);
   if (pattern) schema.pattern = pattern;
 
   return [formatName(name), schema, required];
-}
+};
 
-function getSelectSchema(select) {
+const getSelectSchema = (select) => {
   const { name, required } = select;
-  if (!name) return;
-  const schema = {
-    name,
-    type: 'string',
-    description: getEleDesc(select),
-    enum: Array.from(select.options).map((option) => option.value),
-  };
+  if (!name) return null;
 
-  return [formatName(name), schema, required];
-}
+  return [
+    formatName(name),
+    {
+      name,
+      type: 'string',
+      description: getElementDescription(select),
+      enum: Array.from(select.options).map((option) => option.value),
+    },
+    required,
+  ];
+};
 
-function getTextareaSchema(textArea) {
+const getTextareaSchema = (textArea) => {
   const { name, required } = textArea;
-  if (!name) return;
-  const schema = { name, type: 'string', description: getEleDesc(textArea) };
-  return [formatName(name), schema, required];
-}
+  if (!name) return null;
 
-function getCheckboxesSchema([name, values]) {
-  const e = document.querySelector(`[name="${name}"]`);
-  if (!name.endsWith('[]')) {
-    const schema = {
-      name,
-      type: 'boolean',
-      description: getDescription(e),
-    };
-    return [formatName(name), schema];
-  } else {
-    const schema = {
-      name,
-      type: 'array',
-      description: getDescription(e),
-      uniqueItems: true,
-      // description: values.map((v) => v.description).join(', '),
-      items: {
-        oneOf: values,
-      },
-    };
-    return [formatName(name), schema];
-  }
-}
+  return [
+    formatName(name),
+    { name, type: 'string', description: getElementDescription(textArea) },
+    required,
+  ];
+};
 
-function getRadioSchema([name, values]) {
-  const e = document.querySelector(`[name="${name}"]`);
+const getCheckboxesSchema = ([name, values]) => {
+  const element = document.querySelector(`[name="${name}"]`);
+  const isArray = name.endsWith('[]');
+
   const schema = {
     name,
-    type: 'string',
-    description: getDescription(e),
-    enum: values.map((v) => v.const),
+    type: isArray ? 'array' : 'boolean',
+    description: getDescription(element),
   };
+
+  if (isArray) {
+    schema.uniqueItems = true;
+    schema.items = { oneOf: values };
+  }
+
   return [formatName(name), schema];
-}
-function fillForm(formFields, formData) {
-  formData.forEach(([n, v]) => {
-    const fieldDef = formFields[n];
-    const fieldName = fieldDef.name;
-    const fieldElement = document.querySelector(`[name="${fieldName}"]`);
-    if (fieldElement) {
-      fieldElement.value = v;
-    }
-  });
-}
+};
 
-async function callOpenAiAPI({ api_key, model, max_tokens, tools, messages }) {
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${api_key}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model ?? 'gpt-4o',
-        max_tokens: max_tokens ?? 3024,
-        temperature: 0,
-        tools: tools,
-        messages: messages,
-      }),
-    });
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
+const getRadioSchema = ([name, values]) => {
+  const element = document.querySelector(`[name="${name}"]`);
+  return [
+    formatName(name),
+    {
+      name,
+      type: 'string',
+      description: getDescription(element),
+      enum: values.map((v) => v.const),
+    },
+  ];
+};
 
-const groupByName = (arr) =>
-  Object.entries(
-    arr.reduce((result, obj) => {
-      const { name, value, id } = obj;
-      if (!result[name]) {
-        result[name] = [];
-      }
-      result[name].push({ const: value, id, title: getEleDesc(obj) });
-      return result;
-    }, {})
-  );
+// Main schema generation function
+const generateSchema = (form) => {
+  const inputSelectors = [
+    'input[type="text"]',
+    'input[type="email"]',
+    'input[type="number"]',
+    'input[type="password"]',
+    'input[type="tel"]',
+    'input[type="url"]',
+    'input[type="date"]',
+    'input[type="time"]',
+    'input[type="datetime-local"]',
+    'input[type="month"]',
+    'input[type="week"]',
+    'input[type="color"]',
+    'input[type="range"]',
+    'input[type="search"]',
+  ].join(', ');
 
-function getDescription(ele) {
-  const describe_id = ele.getAttribute('aria-describedby');
-  if (describe_id) {
-    return document.querySelector(`#${describe_id}`).innerText;
-  }
-}
+  const inputs = Array.from(form.querySelectorAll(inputSelectors))
+    .map(getInputSchema)
+    .filter(Boolean);
+  const checkboxes = groupByName(
+    Array.from(form.querySelectorAll('input[type="checkbox"]'))
+  ).map(getCheckboxesSchema);
+  const radios = groupByName(
+    Array.from(form.querySelectorAll('input[type="radio"]'))
+  ).map(getRadioSchema);
+  const selects = Array.from(form.getElementsByTagName('select'))
+    .map(getSelectSchema)
+    .filter(Boolean);
+  const textAreas = Array.from(form.getElementsByTagName('textarea'))
+    .map(getTextareaSchema)
+    .filter(Boolean);
 
-function generateSchema(form) {
-  // Select all form inputs, selects, and textareas
-  const inputsEle = form.querySelectorAll(
-    `input[type="text"], input[type="email"], input[type="number"], input[type="password"], input[type="tel"], input[type="url"], input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"], input[type="color"], input[type="range"], input[type="search"]`
-  );
-  const checkboxEle = form.querySelectorAll(`input[type="checkbox"]`);
-  const radiosEle = form.querySelectorAll(`input[type="radio"]`);
-  const selectsEle = form.getElementsByTagName('select');
-  const textAreasEle = form.getElementsByTagName('textarea');
-
-  const inputs = Array.from(inputsEle)
-    .map((input) => getInputSchema(input))
-    .filter((e) => e);
-
-  const checkBoxes = groupByName(Array.from(checkboxEle)).map(
-    getCheckboxesSchema
-  );
-  const radios = groupByName(Array.from(radiosEle)).map(getRadioSchema);
-
-  const selects = Array.from(selectsEle)
-    .map((select) => getSelectSchema(select))
-    .filter((e) => e);
-
-  const textAreas = Array.from(textAreasEle)
-    .map((textArea) => getTextareaSchema(textArea))
-    .filter((e) => e);
   const schemaProps = [
     ...inputs,
-    ...checkBoxes,
+    ...checkboxes,
     ...radios,
     ...selects,
     ...textAreas,
@@ -178,87 +138,99 @@ function generateSchema(form) {
     description: 'Schema to fill form inputs',
     parameters: {
       type: 'object',
-      required: required,
+      required,
       properties: Object.fromEntries(
         schemaProps.map(([name, schema]) => [name, schema])
       ),
     },
   };
-}
+};
 
-function fillForm(formFields, inputData) {
-  inputData.forEach(([n, v]) => {
+// Form filling function
+const fillForm = (formFields, inputData) => {
+  inputData.forEach(([name, value]) => {
     try {
-      const fieldDef = formFields[n];
+      const fieldDef = formFields[name];
       const fieldName = fieldDef.name;
       const fieldElement = document.querySelector(`[name="${fieldName}"]`);
-      if (Array.isArray(v)) {
-        v.forEach((value) => {
+
+      if (Array.isArray(value)) {
+        value.forEach((val) => {
           const checkbox = document.querySelector(
-            `[name="${fieldName}"][value="${value}"]`
+            `[name="${fieldName}"][value="${val}"]`
           );
           if (checkbox) checkbox.checked = true;
         });
       } else if (fieldElement.type === 'radio') {
-        const radio = document.querySelector(`[name="${fieldName}"]`);
-        radio.checked = true;
+        const radio = document.querySelector(
+          `[name="${fieldName}"][value="${value}"]`
+        );
+        if (radio) radio.checked = true;
       } else if (fieldElement) {
-        fieldElement.value = v;
+        fieldElement.value = value;
       }
     } catch (error) {
-      console.log('Error filling form', n);
-      console.error(error);
+      console.error(`Error filling form field: ${name}`, error);
     }
   });
-}
+};
 
-const submitForm = async (form, formId) => {
-  const formSchema = generateSchema(form);
-  const _data = document.getElementById(`_data_${formId}`).value;
-  const api_key = document.getElementById(`_api-key_${formId}`).value;
-  const llm = await callOpenAiAPI({
-    api_key,
-    tools: [
-      {
-        type: 'function',
-        function: formSchema,
-      },
-    ],
-    tool_choice: 'auto',
-    response_format: { type: 'json_object' },
-    messages: [
-      {
-        role: 'user',
-        content: `call "fillup_form" with following data:
-${_data}
-          
-No additional comments. only json data`,
-      },
-    ],
-    response_format: 'json_object',
-  });
-
+// API call function
+const callOpenAiAPI = async ({
+  api_key,
+  model = 'gpt-4',
+  max_tokens = 3024,
+  tools,
+  messages,
+}) => {
   try {
-    const rawData = llm.choices[0].message?.tool_calls[0].function.arguments;
-    const inputData = Object.entries(JSON.parse(rawData));
-    fillForm(formSchema.parameters.properties, inputData);
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${api_key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens,
+        temperature: 0,
+        tools,
+        messages,
+      }),
+    });
+    return await response.json();
   } catch (error) {
-    const rawData = llm.choices[0].message.content;
-    const inputData = Object.entries(JSON.parse(rawData));
-    fillForm(formSchema.parameters.properties, inputData);
+    console.error('Error calling OpenAI API:', error);
+    throw error;
   }
 };
 
-const forms = Array.from(document.getElementsByTagName('form'));
+// Utility function to group elements by name
+const groupByName = (arr) =>
+  Object.entries(
+    arr.reduce((result, obj) => {
+      const { name, value, id } = obj;
+      if (!result[name]) result[name] = [];
+      result[name].push({
+        const: value,
+        id,
+        title: getElementDescription(obj),
+      });
+      return result;
+    }, {})
+  );
 
-forms.forEach((form, i) => {
-  const _div = document.createElement('div');
-  _div.innerHTML = `
-<a class="fill_btn" onclick="dialog_${i}.showModal()">✨ Fill</a>
-<dialog class="fill" id="dialog_${i}">
-    <article>
-      <p>
-        <textarea class="fill" placeholder="Your data" id="_data_${i}" required>Student Name: Emily Johnson
+// Form setup
+const setupForms = () => {
+  const forms = Array.from(document.getElementsByTagName('form'));
+
+  forms.forEach((form, i) => {
+    const dialogHtml = `
+      <a class="fill_btn" onclick="document.getElementById('dialog_${i}').showModal()">✨ Fill</a>
+      <dialog class="fill" id="dialog_${i}">
+        <article>
+          <p>
+            <textarea class="fill" placeholder="Your data" id="_data_${i}" required>Student Name: Emily Johnson
 Student ID: 12345
 Email: emily@example.com
 Birthday: 04/12/1998
@@ -269,21 +241,17 @@ Skills/Talents: acting, dancing, singing
 Sports: Tennis, Soccer, Chess
 i Have Any Scholarship
 i want to work after collage</textarea>
-      </p>
-      <p>
-        <input type="password" placeholder="OpenAi API key" id="_api-key_${i}" required />
-      </p>
-      <p style="text-align: right">
-        <button role="button" onclick="dialog_${i}.close()">
-          Close
-        </button>
-        <button role="button" id="btn-submit-${i}" onclick="dialog_${i}.close()">
-          Submit
-        </button>
-      </p>
-    </article>
-</dialog>
-<style>
+          </p>
+          <p>
+            <input type="password" placeholder="OpenAI API key" id="_api-key_${i}" required />
+          </p>
+          <p style="text-align: right">
+            <button role="button" onclick="dialog_${i}.close()">Close</button>
+            <button role="button" id="btn-submit-${i}" onclick="dialog_${i}.close()">Submit</button>
+          </p>
+        </article>
+      </dialog>
+     <style>
 dialog.fill::backdrop {
   background: black;
   opacity: 0.7;
@@ -317,9 +285,70 @@ dialog.fill{
   font-weight: bold;
   text-align: center;
 }
-</style>`;
-  const openBtn = form.querySelector(`button[type="submit"]`);
-  openBtn.parentElement.appendChild(_div);
-  const submitBtn = document.getElementById(`btn-submit-${i}`);
-  submitBtn.addEventListener('click', () => submitForm(form, i));
-});
+@keyframes spinner {
+  to {transform: rotate(360deg);}
+}
+ 
+.spinner:before {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  margin-left: -10px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  border-top-color: #000;
+  animation: spinner .6s linear infinite;
+}
+</style> 
+    `;
+
+    const dialogContainer = document.createElement('div');
+    dialogContainer.innerHTML = dialogHtml;
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.parentElement.appendChild(dialogContainer);
+
+    document
+      .getElementById(`btn-submit-${i}`)
+      .addEventListener('click', () => submitForm(submitButton, form, i));
+  });
+};
+
+// Form submission function
+const submitForm = async (submitButton, form, formId) => {
+  submitButton.classList.add('spinner');
+  const formSchema = generateSchema(form);
+  const data = document.getElementById(`_data_${formId}`).value;
+  const apiKey = document.getElementById(`_api-key_${formId}`).value;
+
+  try {
+    const llmResponse = await callOpenAiAPI({
+      api_key: apiKey,
+      tools: [{ type: 'function', function: formSchema }],
+      tool_choice: 'auto',
+      messages: [
+        {
+          role: 'user',
+          content: `call "fillup_form" with following data:\n${data}`,
+        },
+      ],
+    });
+
+    const rawData =
+      llmResponse.choices[0].message?.tool_calls?.[0]?.function?.arguments ||
+      llmResponse.choices[0].message?.content;
+    const inputData = Object.entries(JSON.parse(rawData));
+    fillForm(formSchema.parameters.properties, inputData);
+  } catch (error) {
+    console.error('Error processing form submission:', error);
+  } finally {
+    submitButton.classList.remove('spinner');
+  }
+};
+
+// Initialize the form setup
+setupForms();
