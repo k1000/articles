@@ -135,7 +135,7 @@ const generateSchema = (form) => {
 
   return {
     name: 'fillup_form',
-    description: 'Schema to fill form inputs',
+    description: 'Schema to fill elements in the form',
     parameters: {
       type: 'object',
       required,
@@ -178,7 +178,7 @@ const fillForm = (formFields, inputData) => {
 // API call function
 const callOpenAiAPI = async ({
   api_key,
-  model = 'gpt-4',
+  model = 'gpt-4o',
   max_tokens = 3024,
   tools,
   messages,
