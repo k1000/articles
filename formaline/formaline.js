@@ -285,10 +285,10 @@ dialog.fill{
   font-weight: bold;
   text-align: center;
 }
+
 @keyframes spinner {
   to {transform: rotate(360deg);}
 }
- 
 .spinner:before {
   content: '';
   box-sizing: border-box;
