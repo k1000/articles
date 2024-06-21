@@ -230,17 +230,7 @@ const setupForms = () => {
       <dialog class="fill" id="dialog_${i}">
         <article>
           <p>
-            <textarea class="fill" placeholder="Your data" id="_data_${i}" required>Student Name: Emily Johnson
-Student ID: 12345
-Email: emily@example.com
-Birthday: 04/12/1998
-Address: 1234 Elm Street, Springfield, IL 62701
-Phone: 217 8123438
-Extra Curricular Activities: Swimming, Reading, Writing
-Skills/Talents: acting, dancing, singing
-Sports: Tennis, Soccer, Chess
-i Have Any Scholarship
-i want to work after collage</textarea>
+            <textarea class="fill" placeholder="Your data" id="_data_${i}" required></textarea>
           </p>
           <p>
             <input type="password" placeholder="OpenAI API key" id="_api-key_${i}" required />
