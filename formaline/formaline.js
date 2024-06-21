@@ -21,7 +21,7 @@ function getInputSchema(input) {
   const schema = {
     name,
     type: type === 'number' ? 'number' : 'string',
-    description: getEleDesc(select),
+    description: getEleDesc(input),
     name: name,
   };
   if (min) schema.minimum = Number(min);
@@ -38,49 +38,49 @@ function getSelectSchema(select) {
     name,
     type: 'string',
     description: getEleDesc(select),
-    enum: [],
+    enum: Array.from(select.options).map((option) => option.value),
   };
-  Array.from(select.options).forEach((option) => {
-    // Add the option to the schema
-    schema.enum.push(option.value);
-  });
+
   return [formatName(name), schema, required];
 }
 
 function getTextareaSchema(textArea) {
   const { name, required } = textArea;
   if (!name) return;
-  const schema = { name, type: 'string', description: getEleDesc(select) };
+  const schema = { name, type: 'string', description: getEleDesc(textArea) };
   return [formatName(name), schema, required];
 }
 
 function getCheckboxesSchema([name, values]) {
-  if (!name.endsWith('[]')) {
-    // we have solitary checkbox
-    console.log('solitary checkbox', name, values);
-  }
   const e = document.querySelector(`[name="${name}"]`);
-  const description = getDescription(e);
-  const schema = {
-    name,
-    type: 'array',
-    description,
-    uniqueItems: true,
-    // description: values.map((v) => v.description).join(', '),
-    items: {
-      oneOf: values,
-    },
-  };
-  return [formatName(name), schema];
+  if (!name.endsWith('[]')) {
+    const schema = {
+      name,
+      type: 'boolean',
+      description: getDescription(e),
+    };
+    return [formatName(name), schema];
+  } else {
+    const schema = {
+      name,
+      type: 'array',
+      description: getDescription(e),
+      uniqueItems: true,
+      // description: values.map((v) => v.description).join(', '),
+      items: {
+        oneOf: values,
+      },
+    };
+    return [formatName(name), schema];
+  }
 }
 
 function getRadioSchema([name, values]) {
   const e = document.querySelector(`[name="${name}"]`);
-  const description = getDescription(e);
   const schema = {
     name,
     type: 'string',
-    description,
+    description: getDescription(e),
     enum: values.map((v) => v.const),
   };
   return [formatName(name), schema];
