@@ -1,6 +1,7 @@
 # Create an AI Helper to Automate Filling Boring HTML Forms
 
 ![bot](https://github.com/k1000/articles/blob/main/formaline/Default_A_friendly_bot_crafted_from_shiny_metallic_silver_and_2.jpg?raw=true)
+image created with [leonardo.ai](https://app.leonardo.ai/)
 
 ### Audience
 
