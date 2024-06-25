@@ -15,7 +15,7 @@ Il "function calling" e abititato usando "signature" della funzione. La signatur
 
 Possiamo tutti concordare che compilare form è un compito noioso e che richiede tempo. E se potessimo creare un assistente AI che potesse compilare il form per noi, permettendoci di dedicare il nostro tempo a compiti più costruttivi?
 
-L'assistente AI sarà in grado di compilare il form chiamando una funzione con i campi del form come argomenti. La funzione restituirà un oggetto JSON con i campi del form come chiavi e i valori da compilare nel form.
+L'assistente AI sarà in grado di compilare il form chiamando una funzione con i nomi dei campi del form come argomenti e restituire un oggetto JSON con i campi del form come chiavi e i valori da compilare nel form.
 
 Ci sono un numero infinito di form sul web, ciascuno con la propria struttura unica e convenzioni di denominazione. Fino a poco tempo fa, era quasi impossibile creare un assistente generico che potesse compilare qualsiasi form. Ma con l'avvento dei LLM, possiamo crearne uno.
 
