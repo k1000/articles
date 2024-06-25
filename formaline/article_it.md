@@ -1,4 +1,4 @@
-# Creare un Assistente AI per Automatizzare la Compilazione di Form Noiosi in HTML
+# Crea un Assistente AI per Automatizzare la Compilazione di Form Noiosi in HTML
 
 ![bot](https://github.com/k1000/articles/blob/main/formaline/Default_A_friendly_bot_crafted_from_shiny_metallic_silver_and_2.jpg?raw=true)
 immagine creata con [leonardo.ai](https://app.leonardo.ai/)
