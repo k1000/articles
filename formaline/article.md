@@ -25,45 +25,13 @@ Function calling in most scenarios allows LLMs to interact with [APIs](https://e
 
 Forms can be very different from each other, but they all are built using common elements like input fields, textareas, checkboxes, radio buttons, etc.
 
+We will discuss only the most important parts of the script. The full script can be found [here](https://github.com/k1000/articles/blob/main/formaline/formaline.js).
+
 First, we need to identify the form elements and their types. Regardless of the element type, each element is expected to have a "name" attribute that will be later used as a key in the JSON object.
 
 For each element type, we will create a function that will return a fragment of [JSON schema](https://json-schema.org/) defining the element. The [JSON schema](https://json-schema.org/) should contain a description of the element's purpose. This is very useful for LLMs to understand the purpose of the element or expected values. The text for the description will be gathered from the element's label or placeholder attribute.
 
-First we will define some utility functions that will be used to extract element description and format element name, and group elements by name.
-
-```javascript
-const getElementDescription = (element) => {
-  const labelsText = Array.from(element.labels)
-    .map((label) => label.innerText)
-    .join(', ');
-  return `${labelsText} ${element.placeholder || ''}`.trim();
-};
-
-const formatName = (name) => name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 63);
-
-const getDescription = (element) => {
-  const describeId = element.getAttribute('aria-describedby');
-  return describeId ? document.querySelector(`#${describeId}`).innerText : '';
-};
-
-const groupByName = (arr) =>
-  Object.entries(
-    arr.reduce((result, obj) => {
-      const { name, value, id } = obj;
-      if (!result[name]) result[name] = [];
-      result[name].push({
-        const: value,
-        id,
-        title: getElementDescription(obj),
-      });
-      return result;
-    }, {})
-  );
-```
-
-Here we define functions to create schema for input, select, textarea, checkboxes and radios.
-
-Json schema for each element at least contains:
+Json schema properties for each element at least contains:
 
 - `name`: element's name
 - `type`: element type, usually string
@@ -211,39 +179,7 @@ const generateSchema = (form) => {
 
 This function scans the form for all input elements and creates a schema for each of them. It groups checkboxes and radios by name and creates a schema for each group. Finally, it creates a JSON schema with all the form elements.
 
-`fillForm` populates the form with the data provided in the JSON object. The function iterates over the JSON object and fill the form fields with corresponding values.
-
-```javascript
-const fillForm = (formFields, inputData) => {
-  inputData.forEach(([name, value]) => {
-    try {
-      const fieldDef = formFields[name];
-      const fieldName = fieldDef.name;
-      const fieldElement = document.querySelector(`[name="${fieldName}"]`);
-
-      if (Array.isArray(value)) {
-        value.forEach((val) => {
-          const checkbox = document.querySelector(
-            `[name="${fieldName}"][value="${val}"]`
-          );
-          if (checkbox) checkbox.checked = true;
-        });
-      } else if (fieldElement.type === 'radio') {
-        const radio = document.querySelector(
-          `[name="${fieldName}"][value="${value}"]`
-        );
-        if (radio) radio.checked = true;
-      } else if (fieldElement) {
-        fieldElement.value = value;
-      }
-    } catch (error) {
-      console.error(`Error filling form field: ${name}`, error);
-    }
-  });
-};
-```
-
-Here we define a function that will call OpenAI API with the provided parameters.
+Here we define a function that will call [OpenAI chat competitions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api). We provide the model name and the API key as well we set 'temperature' to 0 to get deterministic results.
 
 ```javascript
 const callOpenAiAPI = async ({
@@ -276,130 +212,8 @@ const callOpenAiAPI = async ({
 };
 ```
 
-This function takes provided by OpenAi object and populates the form with the with values.
-
-```javascript
-const fillForm = (formFields, inputData) => {
-  inputData.forEach(([name, value]) => {
-    try {
-      const fieldDef = formFields[name];
-      const fieldName = fieldDef.name;
-      const fieldElement = document.querySelector(`[name="${fieldName}"]`);
-
-      if (Array.isArray(value)) {
-        value.forEach((val) => {
-          const checkbox = document.querySelector(
-            `[name="${fieldName}"][value="${val}"]`
-          );
-          if (checkbox) checkbox.checked = true;
-        });
-      } else if (fieldElement.type === 'radio') {
-        const radio = document.querySelector(
-          `[name="${fieldName}"][value="${value}"]`
-        );
-        if (radio) radio.checked = true;
-      } else if (fieldElement) {
-        fieldElement.value = value;
-      }
-    } catch (error) {
-      console.error(`Error filling form field: ${name}`, error);
-    }
-  });
-};
-```
-
-`setupForms` scans html document for all forms and creates a dialog for each form. The dialog contains a textarea for the user to input the data and an input field for the OpenAI API key. The dialog also contains a "Fill" button that, when clicked, will open the dialog and fill the form with the data provided by the user.
-
-```javascript
-const setupForms = () => {
-  const forms = Array.from(document.getElementsByTagName('form'));
-
-  forms.forEach((form, i) => {
-    const dialogHtml = `
-      <a class="fill_btn" onclick="document.getElementById('dialog_${i}').showModal()">✨ Fill</a>
-      <dialog class="fill" id="dialog_${i}">
-        <article>
-          <p>
-            <textarea class="fill" placeholder="Your data" id="_data_${i}" required></textarea>
-          </p>
-          <p>
-            <input type="password" placeholder="OpenAI API key" id="_api-key_${i}" required />
-          </p>
-          <p style="text-align: right">
-            <button role="button" onclick="dialog_${i}.close()">Close</button>
-            <button role="button" id="btn-submit-${i}" onclick="dialog_${i}.close()">Submit</button>
-          </p>
-        </article>
-      </dialog>
-     <style>
-dialog.fill::backdrop {
-  background: black;
-  opacity: 0.7;
-}
-
-dialog.fill{
-  border-radius: .3em;
-  article {
-    background: white;
-    width: 40em;
-  }
-  textarea {
-    width: 100%;
-    height: 6em;
-  }
-  input {
-    width: 100%;
-  }
-}
-.fill_btn {
-  cursor: pointer;
-  margin-left: .5em;
-  color: yellow;
-  background: black;
-  width: 6em;
-  height: 100%;
-  display: flex;
-  align-content: center;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  text-align: center;
-}
-@keyframes spinner {
-  to {transform: rotate(360deg);}
-}
- 
-.spinner:before {
-  content: '';
-  box-sizing: border-box;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  margin-top: -10px;
-  margin-left: -10px;
-  border-radius: 50%;
-  border: 2px solid #ccc;
-  border-top-color: #000;
-  animation: spinner .6s linear infinite;
-}
-</style> 
-    `;
-
-    const dialogContainer = document.createElement('div');
-    dialogContainer.innerHTML = dialogHtml;
-    const submitButton = form.querySelector('button[type="submit"]');
-    submitButton.parentElement.appendChild(dialogContainer);
-
-    document
-      .getElementById(`btn-submit-${i}`)
-      .addEventListener('click', () => submitForm(submitButton, form, i));
-  });
-};
-```
-
 Finally we got to the point where we can submit our request to OpenAI API and fill the form with the response.
+We leverage "tools" capacity to provide the schema generated. Here we use "auto" tool_choice to let OpenAI choose the best tool for the job. We provide the data to be filled in the form as a message to the AI assistant with very simple prompt `call "fillup_form" with following data:\n${data}`.
 
 ```javascript
 const submitForm = async (submitButton, form, formId) => {
@@ -432,9 +246,38 @@ const submitForm = async (submitButton, form, formId) => {
     submitButton.classList.remove('spinner');
   }
 };
+```
 
-// Initialize the form setup
-setupForms();
+Above function returns the response from OpenAI API with object mapping the form fields to the values to be filled in the form. We then call the `fillForm` function to fill the form with the response. And vuala! The form is filled.
+
+```javascript
+const fillForm = (formFields, inputData) => {
+  inputData.forEach(([name, value]) => {
+    try {
+      const fieldDef = formFields[name];
+      const fieldName = fieldDef.name;
+      const fieldElement = document.querySelector(`[name="${fieldName}"]`);
+
+      if (Array.isArray(value)) {
+        value.forEach((val) => {
+          const checkbox = document.querySelector(
+            `[name="${fieldName}"][value="${val}"]`
+          );
+          if (checkbox) checkbox.checked = true;
+        });
+      } else if (fieldElement.type === 'radio') {
+        const radio = document.querySelector(
+          `[name="${fieldName}"][value="${value}"]`
+        );
+        if (radio) radio.checked = true;
+      } else if (fieldElement) {
+        fieldElement.value = value;
+      }
+    } catch (error) {
+      console.error(`Error filling form field: ${name}`, error);
+    }
+  });
+};
 ```
 
 ### Where we can go with it?
