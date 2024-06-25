@@ -5,11 +5,11 @@ immagine creata con [leonardo.ai](https://app.leonardo.ai/)
 
 ### Pubblico
 
-Questo articolo è destinato a programmatori che vogliono imparare le basi della capacità di "chiamata di funzione" dei modelli di linguaggio di grandi dimensioni (LLM) (come [OpenAI](https://openai.com/) o [Anthropic](https://www.anthropic.com/)). La chiamata di funzione è una caratteristica fondamentale dei LLM che consente di creare strumenti, agenti o assistenti specializzati che possono interagire con il mondo esterno. Questo articolo ti mostrerà come creare un semplice assistente AI che può compilare form HTML.
+Questo articolo è destinato a programmatori che vogliono imparare le basi della capacità di "function calling" dei modelli di linguaggio di grandi dimensioni (LLM) (come [OpenAI](https://openai.com/) o [Anthropic](https://www.anthropic.com/)). La chiamata di funzione è una caratteristica fondamentale dei LLM che consente di creare strumenti, agenti o assistenti specializzati che possono interagire con il mondo esterno. Questo articolo ti mostrerà come creare un semplice assistente AI che può compilare form HTML.
 
 ### Cosa Imparerai
 
-La chiamata di funzione è abilitata fornendo al LLM una definizione della firma della funzione. La firma della funzione è una descrizione delle proprietà di input previste della funzione. Imparerai come creare una firma di funzione generata dinamicamente usando lo [schema JSON](https://json-schema.org/), permettendo all'assistente AI di interagire con i form HTML. Lo [schema JSON](https://json-schema.org/) è uno strumento potente per definire e convalidare la struttura di un oggetto JSON. Per scopi didattici non utilizzeremo librerie esterne, solo codice JavaScript puro.
+Il "function calling" e abititato usando "signature" della funzione. La signatura è una descrizione delle proprietà di input previste della funzione. Imparerai come creare una firma di funzione generata dinamicamente usando lo [schema JSON](https://json-schema.org/), permettendo all'assistente AI di interagire con i form HTML. Lo [schema JSON](https://json-schema.org/) è uno strumento potente per definire e convalidare la struttura di un oggetto JSON. Per scopi didattici non utilizzeremo librerie esterne, solo codice JavaScript puro.
 
 ### Introduzione
 
