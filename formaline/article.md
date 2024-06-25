@@ -179,7 +179,7 @@ const generateSchema = (form) => {
 
 This function scans the form for all input elements and creates a schema for each of them. It groups checkboxes and radios by name and creates a schema for each group. Finally, it creates a JSON schema with all the form elements.
 
-Here we define a function that will call [OpenAI chat competitions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api). We provide the model name and the API key as well we set 'temperature' to 0 to get deterministic results.
+Here we define a function that will call [OpenAI chat competitions API](https://platform.openai.com/docs/guides/text-generation/chat-completions-api). We provide the model name (in this case 'gpt-4o' which guarantees good results with function calling) and the API key as well we set 'temperature' to 0 to get deterministic results.
 
 ```javascript
 const callOpenAiAPI = async ({
@@ -214,6 +214,7 @@ const callOpenAiAPI = async ({
 
 Finally we got to the point where we can submit our request to OpenAI API and fill the form with the response.
 We leverage "tools" capacity to provide the schema generated. Here we use "auto" tool_choice to let OpenAI choose the best tool for the job. We provide the data to be filled in the form as a message to the AI assistant with very simple prompt `call "fillup_form" with following data:\n${data}`.
+Instead of openAi We can call [Anthropic API](https://docs.anthropic.com/en/api/complete) in similar fashion.
 
 ```javascript
 const submitForm = async (submitButton, form, formId) => {
